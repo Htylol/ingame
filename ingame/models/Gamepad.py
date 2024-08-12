@@ -1,10 +1,10 @@
 import subprocess
 import threading
+import time
 from typing import Union
 
 import pygame
 from pygame.joystick import Joystick
-
 
 class Gamepad:
     LB_BUTTON = 4
@@ -44,15 +44,28 @@ class Gamepad:
         pygame.joystick.init()
 
     def run(self):
-        joystick_count = pygame.joystick.get_count()
-        if joystick_count == 0:
-            print("No joysticks found.")
-        else:
-            self.joystick = pygame.joystick.Joystick(0)
-            self.joystick.init()
+        def hotplug():
+            joystick_init = 0
+            while True:
+                joystick_count = pygame.joystick.get_count()
+                if joystick_count == 0:
+                    print("No joysticks found.")
+                    joystick_init = 0
+                    pygame.event.wait()
+                    time.sleep(1)
+                else:
+                    if joystick_init != 1:
+                        self.joystick = pygame.joystick.Joystick(0)
+                        self.joystick.init()
 
-            self.thread = threading.Thread(target=lambda t, _exec: t.cycle(), args=(self, exec))
-            self.thread.start()
+                        self.thread = threading.Thread(target=lambda t, _exec: t.cycle(), args=(self, exec))
+                        self.thread.start()
+                        joystick_init = 1
+                    if joystick_init == 1:
+                        time.sleep(5)
+
+        hotplug = threading.Thread(name='hotplug', target=hotplug)
+        hotplug.start()
 
     def cycle(self):
         try:
